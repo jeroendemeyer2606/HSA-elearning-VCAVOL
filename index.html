@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCA VOL E-Learning | HELI Safety Academy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --or:#E85C0D;--or-l:#FFF0E8;--or-d:#B84500;
+  --dk:#1A1A1A;--mid:#555;--muted:#888;
+  --bd:#E2E2E2;--bg:#F7F6F3;--wh:#FFF;
+  --rd:#C0392B;--rd-l:#FDECEA;--gn:#1A7F4B;--gn-l:#E6F5EE;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--dk);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+.bg-pattern{position:fixed;inset:0;background:radial-gradient(circle at 20% 80%,rgba(232,92,13,.12) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(232,92,13,.08) 0%,transparent 50%);pointer-events:none}
+.login-box{background:var(--wh);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.4);position:relative;z-index:1}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:2rem}
+.logo-sq{width:44px;height:44px;background:var(--dk);border-radius:10px;display:grid;place-items:center;font-size:20px;border-bottom:3px solid var(--or);flex-shrink:0}
+.logo-tx{font-size:15px;font-weight:700;line-height:1.2}
+.logo-sub{font-size:11px;color:var(--muted);display:block;font-weight:400;margin-top:1px}
+h1{font-size:22px;font-weight:700;margin-bottom:.35rem}
+.sub{font-size:13px;color:var(--muted);margin-bottom:1.75rem;line-height:1.6}
+label{font-size:11px;font-weight:600;color:var(--mid);display:block;margin-bottom:.4rem;text-transform:uppercase;letter-spacing:.5px}
+.input-wrap{position:relative;margin-bottom:1.25rem}
+.code-input{width:100%;padding:14px 16px;border:2px solid var(--bd);border-radius:10px;font-size:18px;font-family:'DM Mono',monospace;font-weight:500;letter-spacing:.12em;text-transform:uppercase;outline:none;transition:border-color .15s;text-align:center}
+.code-input:focus{border-color:var(--or)}
+.btn-login{width:100%;padding:13px;background:var(--or);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-login:hover{background:var(--or-d);transform:translateY(-1px)}
+.btn-login:disabled{background:var(--muted);cursor:not-allowed;transform:none}
+.error-msg{display:none;background:var(--rd-l);color:var(--rd);border-left:4px solid var(--rd);border-radius:7px;padding:.7rem 1rem;font-size:13px;margin-bottom:1rem;line-height:1.5}
+.error-msg.show{display:block}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{margin-top:1.5rem;font-size:11px;color:rgba(255,255,255,.3);text-align:center;position:relative;z-index:1}
+.admin-link{position:fixed;bottom:1rem;right:1rem;font-size:11px;color:rgba(255,255,255,.2);cursor:pointer;text-decoration:none;transition:color .15s}
+.admin-link:hover{color:rgba(255,255,255,.5)}
+</style>
+</head>
+<body>
+<div class="bg-pattern"></div>
+
+<div class="login-box">
+  <div class="logo">
+    <div class="logo-sq">🦺</div>
+    <div>
+      <span class="logo-tx">HELI Safety Academy</span>
+      <span class="logo-sub">VCA VOL E-Learning</span>
+    </div>
+  </div>
+
+  <h1>Welkom</h1>
+  <p class="sub">Voer je persoonlijke toegangscode in om de cursus te starten. Je ontving deze code via e-mail.</p>
+
+  <div class="error-msg" id="err"></div>
+
+  <label for="code">Toegangscode</label>
+  <div class="input-wrap">
+    <input type="text" id="code" class="code-input" placeholder="XXXX-XXXX-XX" maxlength="12" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+  </div>
+
+  <button class="btn-login" id="login-btn" onclick="doLogin()">
+    <span id="btn-label">Cursus starten →</span>
+  </button>
+</div>
+
+<footer>© HELI Safety Academy &nbsp;·&nbsp; Beveiligde leeromgeving</footer>
+<a class="admin-link" href="admin.html">Beheerder</a>
+
+<!-- ── CONFIG ── -->
+<script>
+  const SUPABASE_URL  = 'https://ghnmpvwkeolqsfzheiwd.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdobm1wdndrZW9scXNmemhlaXdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNTA3NzIsImV4cCI6MjA5NTYyNjc3Mn0.d4hp7veLhcrDml08OhOzQkUrLTVQjONjLcT8lieEpWQ';
+</script>
+
+<script>
+  const inp = document.getElementById('code');
+
+  // Auto-format input as user types (uppercase, strip non-alphanum)
+  inp.addEventListener('input', function() {
+    let v = this.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 10);
+    this.value = v;
+  });
+
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+  async function doLogin() {
+    const code = inp.value.trim().toUpperCase();
+    const btn  = document.getElementById('login-btn');
+    const lbl  = document.getElementById('btn-label');
+    const err  = document.getElementById('err');
+    err.classList.remove('show');
+
+    if (!code || code.length < 6) {
+      showError('Voer een geldige toegangscode in.');
+      return;
+    }
+
+    btn.disabled = true;
+    lbl.innerHTML = '<span class="spin"></span>';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?select=id,name,expires_at,is_active&access_code=eq.${encodeURIComponent(code)}`,
+        { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
+      );
+      if (!res.ok) throw new Error('Serverfout');
+      const rows = await res.json();
+
+      if (!rows || rows.length === 0) {
+        showError('Onbekende toegangscode. Controleer de code en probeer opnieuw.');
+        return;
+      }
+
+      const user = rows[0];
+
+      if (!user.is_active) {
+        showError('Deze toegangscode is ingetrokken. Neem contact op met HELI Safety Academy.');
+        return;
+      }
+
+      const expiresAt = new Date(user.expires_at);
+      if (new Date() > expiresAt) {
+        const expStr = expiresAt.toLocaleDateString('nl-BE', {day:'2-digit',month:'long',year:'numeric'});
+        showError(`Je toegang is verlopen op ${expStr}. Neem contact op voor verlenging.`);
+        return;
+      }
+
+      // ✅ Store session & update last_seen
+      sessionStorage.setItem('vca_user_id', user.id);
+      sessionStorage.setItem('vca_user_name', user.name);
+      sessionStorage.setItem('vca_expires', expiresAt.getTime());
+
+      // Update last_seen (fire & forget)
+      fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ last_seen_at: new Date().toISOString() })
+      }).catch(() => {});
+
+      window.location.href = 'cursus.html';
+
+    } catch(e) {
+      showError('Er is een fout opgetreden. Probeer opnieuw.');
+    } finally {
+      btn.disabled = false;
+      lbl.textContent = 'Cursus starten →';
+    }
+  }
+
+  function showError(msg) {
+    const err = document.getElementById('err');
+    err.textContent = msg;
+    err.classList.add('show');
+  }
+</script>
+</body>
+</html>
