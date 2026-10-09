@@ -277,15 +277,45 @@ main{flex:1;padding:2rem 2.5rem 4rem;max-width:840px}
 
 <!-- ═══════ ACCESS GUARD & TRACKING ═══════ -->
 <script>
-(function(){
+(async function(){
   const userId  = sessionStorage.getItem('vca_user_id');
   const expires = sessionStorage.getItem('vca_expires');
-  if (!userId || !expires || Date.now() > parseInt(expires)) {
+  const code    = sessionStorage.getItem('vca_access_code');
+
+  // Redirect immediately if no session at all
+  if (!userId || !expires || !code) {
     sessionStorage.clear();
-    document.documentElement.style.display='none';
+    document.documentElement.style.display = 'none';
     window.location.replace('index.html');
     throw new Error('Unauthorized');
   }
+
+  // Check expiry client-side first (fast)
+  if (Date.now() > parseInt(expires)) {
+    sessionStorage.clear();
+    document.documentElement.style.display = 'none';
+    window.location.replace('index.html');
+    throw new Error('Expired');
+  }
+
+  // Re-verify against Supabase on every page load (catches revoked access)
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/users?select=id,is_active,expires_at&id=eq.${encodeURIComponent(userId)}&is_active=eq.true`,
+      { headers: { 'apikey': SUPABASE_ANON, 'Authorization': 'Bearer ' + SUPABASE_ANON } }
+    );
+    const rows = await res.json();
+    if (!rows || rows.length === 0 || new Date(rows[0].expires_at) < new Date()) {
+      sessionStorage.clear();
+      document.documentElement.style.display = 'none';
+      window.location.replace('index.html');
+      throw new Error('Access revoked or expired');
+    }
+  } catch(e) {
+    // If network error, fall back to client-side session check (already passed above)
+    if (e.message === 'Access revoked or expired') throw e;
+  }
+
   window.VCA_USER_ID   = userId;
   window.VCA_USER_NAME = sessionStorage.getItem('vca_user_name') || '';
   window.VCA_COURSE_ID = sessionStorage.getItem('vca_course_id') || 'vca-vol';
