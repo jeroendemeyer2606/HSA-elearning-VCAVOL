@@ -415,6 +415,9 @@ tr.clickable:hover td{background:var(--or-l)}
             <div class="form-row">
               <label>Toegangsduur</label>
               <select id="inv-duration">
+                <option value="0.5">12 uur</option>
+                <option value="1">1 dag</option>
+                <option value="3">3 dagen</option>
                 <option value="7">7 dagen</option>
                 <option value="14" selected>14 dagen (2 weken)</option>
                 <option value="21">21 dagen</option>
@@ -1205,7 +1208,7 @@ async function doDeactivate() {
 async function createInvite() {
   const name  = document.getElementById('inv-name').value.trim();
   const email = document.getElementById('inv-email').value.trim();
-  const days  = parseInt(document.getElementById('inv-duration').value);
+  const days  = parseFloat(document.getElementById('inv-duration').value);
 
   let valid = true;
   if (!name) { document.getElementById('inv-name-err').classList.add('show'); valid=false; }
@@ -1246,7 +1249,8 @@ async function createInvite() {
     document.getElementById('res-course').textContent = course.title;
     document.getElementById('res-url').textContent = courseUrl;
     document.getElementById('res-code').textContent = code;
-    document.getElementById('res-expiry').textContent = fmtDate(expiresAt) + ' (' + days + ' dagen)';
+    const daysLabel = days < 1 ? (days * 24) + ' uur' : days + (days === 1 ? ' dag' : ' dagen');
+    document.getElementById('res-expiry').textContent = fmtDate(expiresAt) + ' (' + daysLabel + ')';
 
     window._lastInvite = { name, email, code, expiresAt, url: courseUrl, courseTitle: course.title };
     logAction('cursist_uitgenodigd', 'user', name, { email, course_id: courseId, expires_at: expiresAt, access_code: code });
