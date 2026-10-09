@@ -1252,7 +1252,10 @@ async function createInvite() {
     logAction('cursist_uitgenodigd', 'user', name, { email, course_id: courseId, expires_at: expiresAt, access_code: code });
     toast('✅ Uitnodiging aangemaakt voor ' + name);
   } catch(e) {
-    toast('Fout: ' + e.message + (e.message.includes('unique') ? ' (e-mail bestaat al)' : ''), true);
+    let errMsg = e.message;
+    if (e.message.includes('users_email_course_unique')) errMsg = 'Deze persoon heeft al toegang tot deze cursus.';
+    else if (e.message.includes('unique')) errMsg = 'Dubbele waarde — controleer de gegevens.';
+    toast('Fout: ' + errMsg, true);
   } finally {
     btn.disabled = false;
     btn.innerHTML = 'Uitnodiging aanmaken';
